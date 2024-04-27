@@ -1,0 +1,501 @@
+---
+title: "CTA Final Project"
+author: "Anne Hruska"
+date: "2024-03-17"
+output: word_document
+---
+
+## Introduction
+
+This study uses computational text analysis to investigate how personal and cultural backgrounds shape the framing of political narratives, particularly within the context of anarhca-feminism. By analyzing the writings of Voltairine de Cleyre and Emma Goldman——two prominent figures in anarchist literature——this paper aims to explore if their differing upbringings influenced their philosophical and tactical approaches to anarchism. The use of methods such as word frequency analysis and topic modelling allows for a thorough quantitative framework into how cultural environments may influence the discourse and strategies employed by socially-mobilized people.Based on the premise that the cultural and political environments significantly shape philosophical ideologies, this research posits two main hypotheses:
+
+-   Hypothesis 1: Emma Goldman, influenced by her experiences in authoritarian Russia and politically volatile Europe, will exhibit a more militant and direct approach to anarchism in her writings. This hypothesis expects that Goldman's exposure to oppressive regimes and active political upheavals will be evident in her advocacy for direct action and revolutionary tactics.
+
+-   Hypothesis 2: Voltairine de Cleyre, influenced by her upbringing in the relatively stable and democratic environment of the United States, will reflect a more theoretical and less confrontational approach in her anarchist philosophy. This hypothesis suggests that de Cleyre's writings will focus more on intellectual critique and advocacy for social reform through nonviolent means.
+
+## Literature Review
+
+Anarchism is a political philosophy that challenges authority, advocating for a self-governed society based on voluntary, decentralized institutions (Marshall, 2008). This movement has aligned with global struggles for liberation, adaptable to various cultural and political contexts. Anarcha-feminism, a strand within anarchism, merges these principles with feminist critique, emphasizing the fight against patriarchy as crucial to dismantling oppressive state and capitalist structures (Kornegger, 1975).
+
+Voltairine de Cleyre (1866-1912) and Emma Goldman (1869-1940) are significant figures in anarchist and literature, each shaping the movement's direction through their writings. De Cleyre, a Michigan native, advocated for an anarchism skeptical of authority, highlighting its role in stifling freedom through her works like "Anarchism and American Traditions" (de Cleyre, 1932). Goldman, an immigrant from the Russian Empire, used her platform to address issues like free speech and women’s rights, influenced by her experiences with oppression (Goldman, 1923).
+
+Research in anarchist literature has been extensive, with significant attention on the diverse interpretations of anarchism. Scholars such as Avrich (1996) and Shantz (2012) have illuminated the varied nature of anarchist thought across different contexts, focusing on how the individual and how they adapt anarchism to their unique socio-political environments. Further, it is well-documented by political theorists that an individual’s upbringing and life events significantly influence their political ideologies and activism (Entrikin, 2018; Hahn, 2011).
+
+## Methods
+
+This study introduces an approach that applies quantitative textual analysis methods, including word frequency analysis and topic modelling, to the writings of de Cleyre and Goldman. This approach aims to contribute to an area that has traditionally leaned towards qualitative analysis, offering a more empirical view of how cultural contexts influence mobilization. The data for this research are two significant works in anarchist literature: 'Selected Works of Voltairine de Cleyre'(1914) and 'Anarchism and Other Essays' by Emma Goldman (1910). These texts are integral in understanding the philosophies and tactical approaches of each author to anarchism. Both books encapsulate a sample of their contributions to anarcha-feminism; further, the two women were contemporaries and friends——both spending their adult lives involved in activism in America adds some control to other variables that could affect the comparison.
+
+The texts for this study were sourced from Project Gutenberg, a digital library offering access to a wide range of literary works. The choice of this platform ensures that the texts are in the public domain, and also fulfills the course project requirements.The digital format of these texts allows for direct downloading and processing, ensuring that the analysis is reproducible.
+
+## The Process
+
+The initial step in this analysis involves setting up the environment by loading the necessary R libraries. Each library serves a specific purpose in facilitating different aspects of text analysis, data manipulation, visualization, and statistical modelling.
+
+```{r}
+#load all libraries
+
+library(tidyverse) #dplyr, ggplot2, and others
+library(stringr) #handle text elements/generate random text
+library(tidytext)#has set of functions useful for manipulating text
+library(tidyr)#good for converting data 
+library(topicmodels)#estimate topic models
+library(gutenbergr)#get text data
+library(scales)#formating plot axes
+#library(kableExtra) #pkg for displaying data in html
+library(tm)
+library(ggthemes)#make plots look nice
+library(readr)
+library(quanteda)
+library(quanteda.textmodels)
+#devtools::install_github("matthewjdenny/preText")
+library(preText)
+library(knitr)
+#install.packages("webshot2", repos = "http://cran.us.r-project.org") #so markdown can be knit as a word doc
+#library(webshot)
+```
+
+#### Word Frequency Analysis
+
+The core of the text preparation involves downloading and processing texts from Voltairine de Cleyre and Emma Goldman via Project Gutenberg. These texts are identified by their Gutenberg IDs and combined into a single data frame for streamlined analysis.
+
+Tokenization and Stop Word Removal: After combining the text data, it is tokenized to break the texts into individual words. This conversion of unstructured text into a structured format is crucial for detailed text analysis (Manning et al., 2009). Stop words are subsequently removed to refine the dataset, focusing on more meaningful words that enhance analytical clarity.
+
+This step's output showcases the processed textual data, displaying tokenized words from Emma Goldman's text. Each row corresponds to a unique word, tagged with its author and the document's Gutenberg ID, setting the stage for in-depth word frequency and topic modelling analyses
+
+```{r}
+#data preprocessing
+#upload texts for word freq analysis
+goldman_text <- gutenberg_download(c(2162), meta_fields = "author") # 2162 = goldman
+decleyre_text <- gutenberg_download(c(43098), meta_fields = "author") # 43098 Cleyre
+
+#combine the texts from both authors into df with author label
+combined_text <- rbind(
+ mutate(goldman_text, author = "Goldman"),
+ mutate(decleyre_text, author = "Cleyre"))
+
+#tokenize the text/remove stop words
+combined_tokens <- combined_text %>%
+ unnest_tokens(word, text) %>% #tok
+ anti_join(stop_words, by = "word") #stop
+
+#view the tokenized data
+print(combined_tokens)
+```
+
+Next, the word frequenceis are calculated simply by countring the occurences and then sorting the list of results in descending order.
+
+The choice of displaying the top 20 words is a methodological decision made to provide a richer dataset for comparison. Because Goldman and de Cleyre ae so similar and are writing on the same topic, their top 10 words do not show a lot of variety. Whereas when expanded to 20 for each it goes beyond the most frequent words and allows us to explore their broader vocabulary range, which may reveal more nuanced differences in language use and thematic differeneces between the two authors.
+
+This barchart displays a comparative frequency analysis of the most used words by each author. Both authors frequently discuss themes of life, society, and human experience. Goldman’s text emphasizes political concepts such as "society," "women," "world," "political," and "economic," indicating a strong focus on social structures and the economic aspects of anarchism. These words reflect a pragmatic approach. On the other hand, Cleyre's most frequent words like "life," "people," "day," and "love" suggest a broader, perhaps more philosophical take on anarchism, emphasizing personal and everyday experiences along with the societal. The presence of emotive words like "love" and "heart" in her top words could imply a more humanistic and less confrontational approach, in line with the hypothesis that her American upbringing may have informed a more theoretical stance in her writings.
+
+A limitation of this method, and using word frequencies alone is that they are not "psychiatric assessments" (Schmidt et al. 2021, p.1) and additionally, thematic changes within corpuses (like the trichotomy of de Cleyre's writing) may be tied to different topics and skew results. One way to imporve this method for analysis however is to normalize the word frequencies.
+
+```{r}
+#calculate word freqs
+word_frequencies <- combined_tokens %>%
+ count(author, word, sort = TRUE)
+
+#top 10 words for each author
+top_words_by_author <- word_frequencies %>%
+ group_by(author) %>%
+ top_n(20, n) %>% #expanded to 20 after seeing that it yielded more detailed results than 10
+ ungroup()
+
+#plot top 10 words for each author
+ggplot(top_words_by_author, aes(x = reorder(word, n), y = n, fill = author)) + #reorder for by freq
+ geom_col(show.legend = TRUE) + #make a legend
+ facet_wrap(~ author, scales = "free_y") +
+ coord_flip() +
+ labs(x = "Word", y = "Freq", title = "Top 10 Words Used by Goldman and Cleyre") + #labels
+ theme_minimal() +
+ scale_fill_manual(values = c("Goldman" = "steelblue2", "Cleyre" = "rosybrown2")) #colorrs yipeeee
+
+```
+
+To facilitate a better comparison between the texts of different lengths, word frequencies are normalized. This process adjusts for text length by calculating the proportion of each word relative to the total number of words in an author's work (Manning et al., 2009). This method highlights the relative importance of words, providing a more equitable basis for comparison despite differences in text length between Goldman and de Cleyre.
+
+A new barchart reflects these normalized frequencies, with minimal changes to the original display but adjustments to the y-axis to account for the proportional frequencies. Notably, the chart reveals that words with the same stem, such as "women" and "woman," appear separately in the analysis. It did not seem appropriate to use stemming to combine these words as choosing to use individual and plural here could be important to distinguish especially regarding social mobilization.
+
+```{r}
+#have to normalize the freqs. to make a proportional comparisson
+
+#normalize the frequencies within the subset of top words
+top_words_normalized <- top_words_by_author %>%
+ group_by(author) %>%
+ mutate(normalized_frequency = n / sum(n)) %>%
+ ungroup()
+
+#plot it again
+ggplot(top_words_normalized, aes(x = reorder(word, normalized_frequency), y = normalized_frequency, fill = author)) +
+ geom_col(show.legend = FALSE) +
+ facet_wrap(~ author, scales = "free_y") +
+ coord_flip() +
+ labs(x = "Word", y = "Normalized Freq.", title = "Top 10 Normalized Word Frequencies by Author") +
+ theme_minimal() +
+ scale_fill_manual(values = c("Goldman" = "steelblue2", "Cleyre" = "rosybrown2"))
+
+```
+
+```{r}
+#display table of word freqs
+top_words_by_author %>%
+ knitr::kable(format = "html") %>%
+ kable_styling("striped", full_width = F)
+```
+
+### topic modelling
+
+To prepare for topic modelling, we once again load in the Gutenberg text data, but this time into a single dataframe so it will be easier to use in the later analysis.
+
+```{r}
+#upload data from gutenberg for topic  modelling
+golde<- gutenberg_download(c(2162, 43098),
+              meta_fields = "author") #2162 = goldman, 43098 = Cleyre
+
+class(golde) #df
+```
+
+Following word frequency analysis, the data undergoes further preprocessing which includes tokenization and removal of filler words. These steps prepares the text for conversion into a Document Term Matrix (DTM) (Jun et al., 2014).
+
+The DTM highlights notable frequency disparities in word usage between Goldman and de Cleyre. De Cleyre frequently uses terms like "love," "people," and "world" twice as often as Goldman, who favors terms such as "social" and "woman." This indicates a clear thematic divergence in their writings. The DTM's low sparsity level of 34% suggests it is a dense matrix, which is beneficial for the accuracy of the following topic modelling approach.
+
+```{r}
+#preprocessing
+#convert data to DTM, add new column for which author
+#toknizing and removing stop words
+golde_words<- golde %>%
+ mutate(author = ifelse(gutenberg_id == 2162, "Goldman", "Cleyre")) %>%
+ unnest_tokens(word, text) %>% #tokenize
+ filter(!is.na(word)) %>%
+ count(author, word, sort = TRUE) %>%
+ ungroup() %>%
+ anti_join(stop_words) #remove stop words
+
+#format into dtm
+golde_dtm <- golde_words %>%
+ cast_dtm(author, word, n)
+
+tm::inspect(golde_dtm)#take a look first 10 terms
+```
+
+The analysis progresses to a deeper layer with the application of Latent Dirichlet Allocation (LDA), a method necessary for uncovering latent topics within the texts (Manning et al., 2009). In this case six topics (k=6) are specified for the model to extract, a decision informed by testing 2-4 as well as having prior knowledge of using k=6 for LDA successfully on other datasets
+
+To ensure consistency and reproducibility in the findings, we set the seed parameter to 1234. This control measure guarantees that the stochastic elements of the LDA process—like topic assignments—yield the same results across different runs (Nelson, 2019).
+
+The beta values, which represent the probability of each term being generated from each topic, are then extracted into a table. A higher beta value indicates a stronger association between a term and a topic, so, here we see that the term "life" is most likely to belong to topic 1 (b=.012).With the beta values we can begin to interpret the topics more closely.
+
+```{r}
+#estimating topic model
+golde_LDA<- LDA(golde_dtm, k = 6, control = list(seed = 1234)) #set seed so it's replicable, k=6 
+
+#extract the beta (per topic per word prob)
+golde_topics <- tidy(golde_lda, matrix = "beta")
+
+head(golde_topics, n = 6)
+```
+
+The output from the LDA is visualized using ggplot to create bar charts for each of the six topics, highlighting the terms with the highest beta values. This representation helps illustrate the most likely terms contributing to each topic, enhancing our understanding of the themes extracted from the texts.Displaying the top 20 terms per topic was a methodological choice based on preliminary analysis, which suggested that this number provies enough detail; including fewer terms left out significant thematic signal.
+
+The six topics (k=6) were selected to suit the smaller dataset size, in contrast to other models that might opt for more topics. Despite the challenge of distinguishing themes due to the overlap of similar terms—reflective of the authors’ similarities—this analysis proposes the following categories representing the philosophical themes of the authors: 1) Life/Economy, 2) Woman/Liberation, 3) People/Eternal, 4) Life/Rebel, 5) Life/Individual, 6) Social/Violence.
+
+```{r}
+#plot the probability
+golde_top_terms <- golde_topics %>%
+ group_by(topic) %>%
+ top_n(20, beta) %>% #lets go with 20 as it gave us the best results in word freq analysis
+ ungroup() %>%
+ arrange(topic, -beta)
+
+golde_top_terms %>%
+ mutate(term = reorder_within(term, beta, topic)) %>%
+ ggplot(aes(beta, term, fill = factor(topic))) +
+ geom_col(show.legend = FALSE) +
+ facet_wrap(~ topic, scales = "free", ncol = 3) + #shows 4 in a row
+ scale_y_reordered() +
+ theme_tufte(base_family = "Helvetica")
+
+```
+
+To further visualize the relative frequencies, a scatter plot is generated using ggplot. Goldman's word frequencies are on the x-axis and de Cleyre's are on the y-axis, with the absolute differences between their frequencies highlighted through color variation; with blue signifying a low absolute difference and red a high absolute difference. This goes a step beyond the previous visualizations as it offers a visual of the magnitude of difference between the authors’ word usages
+
+The scatter plot serves as a tool to pinpoint terms with notable frequency disparities, laying a foundation for potential deeper qualitative analysis. For instance, terms like "cruel," "absolute," "dramatic," "child," and "equal" appear predominantly in Goldman's writing, suggesting a focus on more direct and intense themes. Conversely, de Cleyre's frequent use of terms like "arms," "feet," "dream," "common," and "bloom" indicates a more hopeful and humanistic approach in her narratives. This contrast in lexical choices underscores the different philosophical perspectives and rhetorical strategies employed by each author.
+
+```{r}
+#lda scatterplot
+tidy_golde <- golde %>% #tidy df
+ unnest_tokens(word, text) %>%
+ anti_join(stop_words)
+
+#count most common words in both
+tidy_golde %>%
+ count(word, sort = TRUE)
+
+#make fequency relative/normalzed by book
+bookfreq <- tidy_golde %>%
+ mutate(author = ifelse(gutenberg_id==2162, "Goldman", "Cleyre")) %>%
+ mutate(word = str_extract(word, "[a-z']+")) %>% #include all a-z regex
+ count(author, word) %>%
+ group_by(author) %>% #by auth
+ mutate(proportion = n / sum(n)) %>% #make proportional to words in whole 
+ select(-n) %>% 
+ spread(author, proportion)
+
+
+#check the column names and first few rows of data for naming
+print(colnames(bookfreq))
+str(bookfreq) #tibble
+
+#plot
+ggplot(bookfreq, aes(x = Goldman, y = Cleyre, color = abs(Goldman - Cleyre))) + #absolute difference in frequency between Goldman and Cleyre
+ geom_abline(color = "black", lty = 2) +
+ geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+ geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+ scale_x_log10(labels = percent_format()) +
+ scale_y_log10(labels = percent_format()) +
+ scale_color_gradient(limits = c(0, 0.001), low = "royalblue2", high = "violetred4") + #yipeee colors
+ theme_tufte(base_family = "Helvetica") +
+ theme(legend.position="none", 
+    strip.background = element_blank(), 
+    strip.text.x = element_blank()) +
+ labs(x = "Goldman", y = "Cleyre") +
+ coord_equal()
+
+```
+
+Segmenting the collections of essays, poems, and stories by de Cleyre and Goldman posed a significant challenge due to the absence of explicit chapter divisions in the texts. This issue was addressed by manually identifying specific line numbers in the golde dataframe that marked new sections. Goldman's work was divided into fourteen sections including a biographic sketch, preface, and twelve essays. For de Cleyre, initial segmentation intended to create four sections unexpectedly resulted in nine due to her use of "chapter" in one essay.
+
+To resolve this issue and accurately capture the intended sections, a unique marker, "chapta," not found in either text, was used. This strategy resulted in proper segmentation: fourteen sections for Goldman and four for de Cleyre. De Cleyre's writings were intentionally grouped into three broader documents plus an introduction, in order to represent different her writing styles and otentially increase the thematic consistency.
+
+Following the segmentation, the texts were tokenized and transformed into a DTM, enabling detailed analysis of word usage within each section. This transformation confirmed the effectiveness of the segmentation, as shown by specific word counts, like "people" appearing 229 times in one of de Cleyre's sections. The segmentation increased the sparsity of the matrix from 34% to 88%, reflecting a higher incidence of zero counts typical of more finely divided texts (Jun et al., 2014). This allows for a deeper exploration of thematic elements within smaller sections of the corpus.
+
+```{r}
+#split into sections
+#uh oh, these texts have no "chapters" as they are collections of essays, poems, and stories - have to find way to distinguish each section
+
+golde <- golde %>%
+ filter(!is.na(text))
+str(golde)#double checking is df
+
+#define line numbers where sections begin
+goldman_section_starts <- c(60, 1102, 1220, 1786, 2059, 2883, 3379, 3879, 4493, 4749, 5258, 5703, 6034, 6374) #bio, preface, essay 1-12, 14 total 
+decleyre_section_starts <- c(7374, 7657, 10190, 19746) #intro, poems, essays, stories, 4 total but it goes up to decleyre_9 because of her own specification of chapters in one piece of writing -> potential place for further analysis if I want to break it down by her 3 formats instead
+
+#add 'chapta' markers to the df
+golde <- golde %>%
+ mutate(
+  line_number = row_number(), #add a line number column for reference ( so it knows what numbers I am referring to)
+  #add "chapta' marker, has to be 'chapta' as it's something neither text references
+  text = ifelse(line_number %in% goldman_section_starts & gutenberg_id == 2162,
+         paste("chapta", text),
+         ifelse(line_number %in% decleyre_section_starts & gutenberg_id == 43098,
+             paste("chapta", text),
+             text))
+ )
+
+#now golde should have "chapta" added in as a marker!! 
+#__________________________________________
+
+#divide into documents, each representing one chapter
+golde_chapter <- golde %>%
+ mutate(author = ifelse(gutenberg_id==2162, "Goldman", "Cleyre")) %>%
+ group_by(author) %>%
+ mutate(chapter = cumsum(str_detect(text, regex("^chapta ", ignore_case = TRUE)))) %>%
+ ungroup() %>%
+ filter(chapter > 0) %>%
+ unite(document, author, chapter)
+
+#split into words
+golde_chapter_word <- golde_chapter %>%
+ unnest_tokens(word, text)
+
+#find document-word count (chapter word count)
+golde_word_counts <- golde_chapter_word %>%
+ anti_join(stop_words) %>% #get rid of stop
+ count(document, word, sort = TRUE) %>%
+ ungroup()
+
+golde_word_counts #run to view it
+
+#cast into DTM format for LDA analysis
+golde_chapters_dtm <- golde_word_counts %>%
+ cast_dtm(document, word, n)
+
+tm::inspect(golde_chapters_dtm) #first 10 terms
+
+```
+
+The Latent Dirichlet Allocation (LDA) model was tested with different numbers of topics (k) to optimize its accuracy and thematic relevance. The chosen parameter k=4 was the most effective, balancing complexity and precision. Simpler models with k=2 perfromed poorly with the algorithm only guessing each author's writing correctly 50% of the time. While k=5 and k=6 risked overfitting, making it too tailored to the specific dataset and potentiall unable to accurately categorize unseen test-data.
+
+The gamma values, which indicate the proportion of words within each document associated with a given topic, were instrumental in understanding topic distribution. Interestingly, Cleyre's poems (Cleyre_2) and Goldman’s essay "Woman Suffrage" (Goldman_11) demonstrated strong thematic trends, highlighted by their prominent gamma values (\~1 and 0.395, respectively). This analysis pinpoints sections like Cleyre_2 and Goldman_11 as distinctly reflective of their authors’ thematic and philosophical styles, offering a deeper insight into how each author integrates themes within their works.
+
+```{r}
+#restimate topic model with new dtm k=4, 
+golde_chapters_LDA<- LDA(golde_chapters_dtm, k = 4, control = list(seed = 1234)) #Linear Discriminant Analysis, k=4 because tried k=2 and model was 50% on all all guesses, k=4 model preformed better but was only 69% on Goldman and 100% on Cleyre, tried 5,6, and 3 as well and 6 best
+#overfit =6,5 poorly perform= 2,3
+
+#gamma val estimates
+golde_chapters_gamma <- tidy(golde_chapters_lda, matrix = "gamma")
+golde_chapters_gamma
+
+```
+
+This phase leveraged a model to differentiate between the writings of Goldman and de Cleyre with high precision. It accurately categorized 100% of words in Cleyre's sections and 69% in Goldman’s, revealing distinct patterns in their writings. The text was segmented into documents using the "chapta" marker for a detailed thematic analysis, with gamma values used to evaluate thematic content in each section. This segmentation was then followed by a classification step where each section is evaluated for its thematic content through the calculated gamma values representing topic memberships.
+
+The subsequent visualization of the model's assignments provides a clear, quantified representation of its performance. The heatmap indicates the model's confidence in associating words with the respective authors. While Cleyre's 100% attribution suggests a strong stylistic consistency or distinctive use of language captured by the model, it also also raises concerns about overfitting. Overfitting occurs when a model is so finely tuned to the training data that it may not generalize well to new, unseen data (Ha et al., 2019). The 100% classification for Cleyre's sections implies that while the model can recognize her style within the training data literally perfectly, it may lack the flexibility to account for variability in a larger body of her work.
+
+In contrast, the 69% accuracy for Goldman suggests her stylistic diversity could be affecting the model's precision and it is slightly below the generally accepted 70-90% accuracy range. It could also be due to splitting up her work into more documents than de Cleyre's work.The results underscore the importance of cautious interpretation though just because one of the scores is outside the threshold it does not mean the model is poor. Testing the model with set sample and test sets from the authors would help in evaluating its robustness and reliability in distinguishing their literary voices.
+
+```{r}
+#unsupervised learning distinguish models
+
+#first separate the document name into title and chapter with the respective gamma
+golde_chapters_gamma <- golde_chapters_gamma %>%
+ separate(document, c("title", "chapter"), sep = "_", convert = TRUE)
+
+#classify chapter by highest gamma val showing topic assignment
+golde_chapter_classifications <- golde_chapters_gamma %>% #
+ group_by(title, chapter) %>%
+ top_n(1, gamma) %>%
+ ungroup()
+
+#gather topic counts for each title & select the most prevalent
+golde_book_topics <- golde_chapter_classifications %>%
+ count(title, topic) %>%
+ group_by(title) %>%
+ top_n(1, n) %>%
+ ungroup() %>%
+ transmute(consensus = title, topic)
+
+#join the classifications with the book topics
+golde_chapter_classifications %>%
+ inner_join(golde_book_topics, by = "topic") %>%
+ filter(title != consensus) #get rid of titles that don't match the consensus (where the accuracy count happens)
+
+#make document-word pairs to see which words in each documents were assigned to a given topic
+assignments_gd <- augment(golde_chapters_lda, data = golde_chapters_dtm)
+assignments_gd
+
+#seperate the doc field again for clarity & join w/ book topics for comparison
+assignments_gd <- assignments_gd %>%
+ separate(document, c("title", "chapter"), sep = "_", convert = TRUE) %>%
+ inner_join(golde_book_topics, by = c(".topic" = "topic"))
+
+#count the freq of words assigned to each title & calc the percent of total word counts
+assignments_gd %>%
+ count(title, consensus, wt = count) %>%
+ group_by(title) %>%
+ mutate(percent = n / sum(n)) %>% #percent of total
+ ggplot(aes(consensus, title, fill = percent)) + #tile plot/heatmap showing percent of words correctly assigned
+ geom_tile() +
+ scale_fill_gradient2(high = "red", label = percent_format()) +
+ geom_text(aes(x = consensus, y = title, label = scales::percent(percent))) +
+ theme_tufte(base_family = "Helvetica") +
+ theme(axis.text.x = element_text(angle = 90, hjust = 1),#rotate lables 90deg for readability
+    panel.grid = element_blank()) +
+ labs(x = "Book words assigned to", 
+    y = "Book words came from",
+    fill = "% of assignments")
+```
+
+### Validation
+
+In this study, validation plays an important role in ensuring the integrity and reliability of the topic modelling results. Using PreText validation allows us to test our text preprocessing choices to understand their influence on the topics. This step is particularly important given the heterogeneous nature of our primary texts—collections of essays, speeches, and other works that lack conventional structure. Through the creation of a quanteda corpus and selective sampling, this section scrutinizes a representative slice of the data, seeking to understand what changes could better improve the credibility of the models.
+
+The first step in validation was making a corpus using the quanteda package The transformation from a dataframe into a corpus allows for advanced processing capabilities, like stemming, n-gram creation. In preparation for validation, a random sample of 100 documents was selected from the first 3000. This sample is a manageable segment of the corpus, providing a cross-section of the golde data. It also allows for computational techniques which may otherwise be too demanding if applied to the entire data set at once. It also ensures the robustness of the analytical method as it eaves room for another sample or even a test set to be generated (Ballester and Penner, 2022).
+
+```{r}
+#reformat text into quanteda corpus 
+#load in corpus of golde text data.
+corp <- corpus(golde, text_field = "text")
+#randomly select 100 docs from first 3000 docs to make sample data
+documents <- corp[sample(1:3000,100)]
+```
+
+```{r}
+head(documents)#take a look at first 5
+print(names(documents[1:10]))#take a look at the document names
+
+```
+
+This section uses the factorial_preprocessing function for n-gram analysis, where an n-gram represents a sequence of n items from a given text sample. This allows the analysis to extend beyond single words to pairs (bigrams), triples (trigrams), or larger combinations, enriching the textual analysis (Cavnar and Trenkle, 2001).
+
+The function processes the documents through 128 different preprocessing combinations, examining the impact of various adjustments like n-gram size, term frequency thresholds, and other normalization techniques like stemming and lemmatization (Manning et al., 2009). This comprehensive processing is essential for identifying how different text preprocessing strategies influence the analysis outcomes.Setting the infrequent_term_threshold at 0.2 helps to exclude terms appearing in fewer than 20% of documents, focusing the analysis on the most representative terms. This threshold minimizes noise from rare terms that might obscure the text's central themes.
+
+The output message implies that the dataset of 100 documents has been processed using 128 different combinations of preprocessing options. By processing the text in multiple ways, this helps ensure that the conclusions drawn from the analysis are not just the result of a particular method of preprocessing but are instead reflective of patterns in the data.
+
+```{r}
+#n-gram preprocessing
+preprocessed_documents <- factorial_preprocessing(
+  documents,
+  use_ngrams = TRUE,
+  infrequent_term_threshold = 0.2, #the frequency of different words in the documents less than 20%
+  verbose = FALSE)
+#note:Preprocessing 100 documents 128 different ways...
+```
+
+The output from preText includes a regression model that quantifies how much each preprocessing step influences the cosine similarity between documents (Denny and Spirling, 2018). Each row represents a different preprocessing step, with coefficients indicating the extent of impact (Denny and Spirling, 2018). Below are two of the significant preproessing steps: \* Remove Punctuation (-0.033): Removing punctuation reduces document similarity, highlighting its role in defining an author's unique style. This step can improve the clarity of author distinctions in text analysis. \* Remove Infrequent Terms (0.081): Retaining infrequent terms significantly stabilizes topic modelling. These terms are crucial in distinguishing thematic and stylistic nuances between similar authors, ensuring unique elements are preserved in the analysis.
+
+```{r}
+#results of preprocessing table
+preText_results <- preText(
+  preprocessed_documents, #doc after n-gram preprocessing
+  dataset_name = "Golde text",
+  distance_method = "cosine", #using cosin distance to measure similarity between docs
+  num_comparisons = 20, #the nuber of random comparisons to be made for stat testing
+  verbose = FALSE) #simple output
+```
+
+The dotplot of the preText score visualizes the stability of topics from the LDA model across different text preprocessing methods. Each dot on represents a unique preprocessing combination, with the preText Score on the x-axis showing the stability score and the y-axis displaying the particular combinations. A higher score means there is an unusual preprocessing specification, where as a low score denotes a usual, desireable score (Denny and Spirling, 2018).
+
+```{r}
+#plot the results 
+preText_score_plot(preText_results)
+```
+
+## Findings
+
+The findings reveal differences in the narrative styles of the two authors, potentially correlating with their unique cultural backgrounds and experiences. The LDA identified six main topics across the texts, providing insight into the core themes discussed by each author. Notably, the topics aligned closely with the hypothesized influences of their environments.
+
+Emma Goldman exhibited a more direct and actionable approach in her writings, potentially influenced by her experience of active political upheavals in Europe. This was evident in her frequent use of terms related to activism, social structures, and economic aspects of anarchism. 
+
+Voltairine de Cleyre displayed a more theoretical and contemplative approach, reflecting her relatively stable and democratic upbringing in the United States. Her language featured a broader, philosophical range, focusing more on personal and everyday experiences.s.
+
+
+## Conclusion
+
+The use of computational techniques allowed for a detailed and visual comparison of the authors' thematic focuses, highlighting how cultural contexts may influence social mobilization. The normalization of word frequencies and the strategic application of topic modelling techniques helped mitigate discrepancies due to text length and stylistic differences, enhancing the robustness of the comparative analysis.
+
+
+The study did however encounter several limitations:
+\* The analysis was confined to two authors, which may not fully represent the broader spectrum of anarchism.
+\* A small sample of de Cleyre and Goldman's writing available through project Gutenberg. This could be imporved by joining multiple of their works through wbescraping to create a larger corpus. 
+\* The segmentation of texts into discrete sections was challenging due to the lack of explicit chapter markings, which might have affected the granularity of the topic modeling.
+\* Potential overfitting in topic models, particularly with Cleyre's texts, suggests the model may be too finely tuned to the specifics of the dataset, possibly impacting its generalizability.
+
+Future studies could expand the dataset to include more authors from varied backgrounds, for example other anarchists who grew up in Russia verusus those from America to better generalize the findings. Employing additional computational methods like sentiment analysis could further enrich the understanding of the trends outlined in this paper. Moreover, testing the models with unseen texts could validate their predictive reliability and robustness.This research could also benefit from further qualitative studies into these authors'upbringings and narratives.
+
+This research underscores the use of computational social science methods in uncovering the nuanced ways in which cultural contexts influence political ideologies. By analyzing the linguistic and thematic elements in the writings of Goldman and de Cleyre, the study enhances our understanding of how personal experiences shape political expression. As computational techniques evolve, they have the potential to advance our comprehension of historical and literary narratives, providing deeper insights into political thought and activism.
+
+
+
+
+##Bibliography
+
+Avich, P., 1996. Anarchist Voices | Princeton University Press [WWW Document]. URL https://press.princeton.edu/books/paperback/9780691044941/anarchist-voices (accessed 4.26.24).
+Ballester, O., Penner, O., 2022. Robustness, replicability and scalability in topic modelling. Journal of Informetrics 16, 101224. 
+Cavnar, W., Trenkle, J., 2001. N-Gram-Based Text Categorization. Proceedings of the Third Annual Symposium on Document Analysis and Information Retrieval.
+de Cleyre, V., 1932. Anarchism and American Traditions [WWW Document]. The Anarchist Library. URL https://theanarchistlibrary.org/library/voltairine-de-cleyre-anarchism-and-american-traditions (accessed 4.26.24).
+de Cleyre, V., 1914. Selected Works of Voltairine de Cleyre, by Voltairine de Cleyre—A Project Gutenberg eBook [WWW Document]. URL https://www.gutenberg.org/files/43098/43098-h/43098-h.htm (accessed 4.26.24).
+Denny, M.J., Spirling, A., 2018. Text Preprocessing For Unsupervised Learning: Why It Matters, When It Misleads, And What To Do About It. Political Analysis 26, 168–189. 
+Entrikin, J.N., 2018. Geography of experience: place and region, in: Handbook on the Geographies of Regions and Territories. Edward Elgar Publishing, pp. 44–56.
+Goldman, E., 1923. My Disillusionment in Russia – Preface (I) [WWW Document]. URL https://www.marxists.org/reference/archive/goldman/works/1920s/disillusionment/preface.htm (accessed 4.26.24).
+Goldman, E., 1910. Anarchism and Other Essays.
+Ha, C., Tran, V.-D., Ngo Van, L., Than, K., 2019. Eliminating overfitting of probabilistic topic models on short and noisy text: The role of dropout. International Journal of Approximate Reasoning 112, 85–104. 
+Hahn, J., 2011. The Oxford Handbook of Social Relations in the Roman World: Philosophy as socio-political upbringing. Oxford University Press.
+Jun, S., Park, S.-S., Jang, D.-S., 2014. Document clustering method using dimension reduction and support vector clustering to overcome sparseness. Expert Systems with Applications 41, 3204–3212. 
+Kornegger, P., 1975. Anarchism: The Feminist Connection [WWW Document]. The Anarchist Library. URL https://theanarchistlibrary.org/library/peggy-kornegger-anarchism-the-feminist-connection (accessed 4.26.24).
+Manning, C., Raghavan, P., Schuetze, H., 2009. Introduction to Information Retrieval.
+Marshall, P., 2008. Demanding The Impossible A History Of Anarchism [WWW Document]. URL https://bestq.info/download/4842403-demanding-the-impossible-a-history-of-anarchism (accessed 4.26.24).
+Nelson, L.K., 2019. To Measure Meaning in Big Data, Don’t Give Me a Map, Give Me Transparency and Reproducibility. Sociological Methodology 49, 139–143. 
+Schmidt, B., Piantadosi, S.T., Mahowald, K., 2021. Uncontrolled corpus composition drives an apparent surge in cognitive distortions. Proceedings of the National Academy of Sciences 118, e2115010118. 
+Shantz, J., 2010. Constructive Anarchy: Building Infrastructures of Resistance. Routledge, London.
